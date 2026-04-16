@@ -1,0 +1,55 @@
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=athena
+      - POSTGRES_PASSWORD=athena
+      - POSTGRES_DB=athena
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U athena -d athena"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - athena_network
+
+  elasticsearch:
+    image: elasticsearch:8.10.2
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200 >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    networks:
+      - athena_network
+
+  chroma:
+    image: chromadb/chroma:latest
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    networks:
+      - athena_network
+
+volumes:
+  postgres_data:
+  chroma_data:
+  es_data:
+
+networks:
+  athena_network:
+    driver: bridge
